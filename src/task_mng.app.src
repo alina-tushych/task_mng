@@ -1,0 +1,22 @@
+{application, task_mng, [
+    {description, "task system for support or teams"},
+    {vsn, "0.0.1"},
+    {modules, []},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        compiler,
+        jsone,
+        sasl,
+        crypto,
+        asn1,
+        public_key,
+        ssl,
+        cowlib,
+        ranch,
+        cowboy
+    ]},
+    {mod, {task_mng_app, []}},
+    {env, []}
+]}.
