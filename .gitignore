@@ -1,0 +1,11 @@
+.erlang.mk/
+.idea/
+.rebar/
+deps/*
+doc/*
+ebin/*
+log/*
+*.dump
+erl_crash.dump
+*.iml
+_rel/
