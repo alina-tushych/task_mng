@@ -12,7 +12,7 @@ REBAR_GIT = https://github.com/rebar/rebar.git
 DEPS = jsone cowboy
 
 dep_jsone                         = $(GIT_PATH)/sile/jsone.git                 master
-dep_cowboy                        = $(GIT_PATH)/ninenines/cowboy               1.0.4
+dep_cowboy                        = $(GIT_PATH)/ninenines/cowboy               2.7.0
 
 ENV ?= devel
 
