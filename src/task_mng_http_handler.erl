@@ -16,7 +16,7 @@
 ]).
 
 -define(INTERNAL_ERR,
-    <<"{\"status\":\"error\", \"error_code\":\"internal_error\", \"error_msg\":\"Internal Error\"}">>
+    <<"{\"status\":\"error\",\"error\":{\"code\":500,\"message\":\"Internal Server Error\"}}">>
 ).
 
 init(_Type, Req, []) ->
@@ -25,44 +25,58 @@ init(_Type, Req, []) ->
 handle(Req1, State) ->
     {Path, Req2} = cowboy_req:path(Req1),
     {Method, Req3} = cowboy_req:method(Req2),
-    {ok, Body, Req4} = cowboy_req:body(Req3),
+    {ok, Body, Req4} = cowboy_req:read_body(Req3),
     {InHeaders, Req5} = cowboy_req:headers(Req4),
-    {ok, Req6} = try
-                     {Code, NewHeaders, Resp} = dispatch(Method, Path, InHeaders, Body),
-                     cowboy_req:reply(Code, NewHeaders, Resp, Req5)
-                 catch
-                     _Type:_Reason ->
-%%                         Stacktrace = erlang:get_stacktrace(),
-%%                         error_logger:info_msg("Method:~p Path:~p Body:~p~n "
-%%                         "Exception Type:~p~n Reason:~p Stacktrace:~p~n",
-%%                             [Method, Path, Body, Type, Reason, Stacktrace]),
-                         cowboy_req:reply(500, ?HEADERS, ?INTERNAL_ERR, Req4)
-                 end,
+    {ok, Req6} =
+        try
+            {Code, NewHeaders, Resp} = dispatch(Method, Path, InHeaders, Body),
+            cowboy_req:reply(Code, NewHeaders, Resp, Req5)
+        catch
+            Type:Reason ->
+                Stacktrace = erlang:get_stacktrace(),
+                ErrLog = "[HTTP] Request ERROR:~nMethod:~p~nPath:~p~nBody:~p~n"
+                    "Exception Type:~p~nReason:~p Stacktrace:~p~n",
+                ErrArg = [Method, Path, Body, Type, Reason, Stacktrace],
+                task_mng_logger:error(ErrLog, ErrArg),
+                cowboy_req:reply(500, ?HEADERS, ?INTERNAL_ERR, Req4)
+        end,
     {ok, Req6, State}.
 
 terminate(_Reason, _Req, _State) ->
     ok.
 
-dispatch(<<"POST">>, Path, _Headers, Body) ->
-%%    error_logger:info_msg("New http query: ~p", [Path]), %% TODO need to add logger - task 16
-    case task_mng_coder:decode(Body) of
+dispatch(<<"POST">> = Method, Path, _Headers, Body) ->
+    DecodeBody = task_mng_coder:decode(Body),
+    Log = "[HTTP] Incoming request~nMethod:~p~nPath:~p~nBody:~p~n",
+    Arg = [Method, Path, DecodeBody],
+    task_mng_logger:info(Log, Arg),
+    case DecodeBody of
         {ok, Args} ->
 %%            case task_mng_http_req_validator:validate(Path, Args) of %% TODO need to add validation task 14
 %%                {ok, Args} ->
                     Result = dispatch(Path, Args),
+                    OkLog = "[HTTP] Response OK~nMethod:~p~nPath:~p~nBody:~p~nResult:~p",
+                    OkArg = [Method, Path, DecodeBody, Result],
+                    task_mng_logger:info(OkLog, OkArg),
                     Result2 = encode_result(Result, Path),
                     {ok, Resp} = task_mng_coder:encode(Result2),
                     {200, ?HEADERS, Resp};
 %%                {error, Reason} ->
-%%%%                    error_logger:info_msg("Args validation failed, path: ~tp, body: ~tp, reason: ~tp ",
-%%%%                        [Path, Body, Reason]),
-%%                    Message = unicode:characters_to_binary(io_lib:format("Args validation failed: ~tp", [Reason])),
+%%                    ErrLog = "[HTTP] Args validation failed~nMethod:~p~nPath:~p~nBody:~p~nReason:~p",
+%%                    task_mng_logger:error(ErrLog, [Method, Path, Body, Reason]),
+%%                    Message = unicode:characters_to_binary(io_lib:format("Args validation failed: ~p", [Reason])),
 %%                    {400, [{<<"Content-Type">>, <<"text/text">>}], Message}
 %%            end;
         {error, Reason} ->
-            {415, [{<<"Content-Type">>, <<"text/text">>}], Reason}
+            ErrLog = "[HTTP] Request ERROR~nMethod:~p~nPath:~p~nBody:~p~n Reason:~p",
+            ErrArg = [Method, Path, DecodeBody, Reason],
+            task_mng_logger:error(ErrLog, ErrArg),
+            {415, [{<<"Content-Type">>, <<"text/text">>}], <<"Bed body">>}
     end;
-dispatch(<<"GET">>, _Path, _Headers, _Body) ->
+dispatch(<<"GET">> = Method, Path, _Headers, Body) ->
+    ErrLog = "[HTTP] Request ERROR~nMethod:~p~nPath:~p~nBody:~p~n Reason:POST required",
+    ErrArg = [Method, Path, Body],
+    task_mng_logger:error(ErrLog, ErrArg),
     {405, [{<<"Content-Type">>, <<"text/text">>}], <<"POST required">>}.
 
 %% internal
@@ -91,7 +105,6 @@ encode_result(ok, _Path) ->
 %%        {<<"response">>, Result}
 %%    ];
 encode_result({error, Code, Msg}, _) ->
-%%    error_logger:info_msg("Path:~p~nError:~p", [Path, Error]),
     [
         {<<"status">>,      <<"error">>},
         {<<"error">>, [
