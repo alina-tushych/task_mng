@@ -10,7 +10,14 @@
 
 -define(SERVER, ?MODULE).
 -define(STOP_CHILD_TIMEOUT, 2000).
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, ?STOP_CHILD_TIMEOUT, Type, []}).
+-define(CHILD(I, Type, Args), {I, {I, start_link, Args}, permanent, ?STOP_CHILD_TIMEOUT, Type, []}).
+-define(DB_ARGS, [
+    {hostname, "localhost"},
+    {database, "postgres"},
+    {username, "postgres"},
+    {password, "postgres"},
+    {port, 5432}
+]).
 
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
@@ -21,6 +28,7 @@ init(_Args) ->
         intensity   => 500,
         period      => 10
     },
-    MainWorker = ?CHILD(task_mng_worker, worker),
-    Workers = [MainWorker],
+    MainWorker = ?CHILD(task_mng_worker, worker, []),
+    DBWorker   = ?CHILD(task_mng_db_worker, worker, ?DB_ARGS),
+    Workers = [MainWorker, DBWorker],
     {ok, {SupFlags, Workers}}.
