@@ -21,7 +21,7 @@ start(_Type, _StartArgs) ->
 %%    application:start(cowboy),
     Result = task_mng_sup:start_link(),
     start_http(),
-%%    task_mng_http_req_validator:init(), %% TODO need to add validation task 14
+%%    task_mng_http_req_validator:init(), %% TODO need to add validation task 19
     Result.
 
 stop(_State) ->

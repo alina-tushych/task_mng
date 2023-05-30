@@ -30,11 +30,11 @@ equery(SQL, Params) ->
 
 init(Args) ->
     process_flag(trap_exit, true),
-    Hostname = proplists:get_value(hostname, Args),
-    Database = proplists:get_value(database, Args),
-    Username = proplists:get_value(username, Args),
-    Password = proplists:get_value(password, Args),
-    Port = proplists:get_value(port, Args, 5432),
+    Hostname = proplists:get_value(hostname, Args, "localhost"),
+    Database = proplists:get_value(database, Args, "task_mng"),
+    Username = proplists:get_value(username, Args, "postgres"),
+    Password = proplists:get_value(password, Args, "postgres"),
+    Port     = proplists:get_value(port, Args, 5432),
     Options = [{database, Database}, {port, Port}],
     {ok, Conn} = epgsql:connect(Hostname, Username, Password, Options),
     {ok, #state{conn = Conn}}.
