@@ -12,8 +12,8 @@
     {ok, {Count :: integer(), Res :: proplists:proplist()}} | %insert ... returning ...
     {ok, []} | %selected data is empty
     {ok, Res :: proplists:proplist()} | %select
-    {ok, {Count :: integer(), []}} |  %update
-    {error, term()}.  %invalid SQL
+    {ok, {Count :: integer(), []}} | %update
+    {error, term()}. %invalid SQL
 query(SQL) ->
     Res = task_mng_db_worker:squery(SQL),
     Log = "[DB] Result of a database query: ~p",
@@ -24,13 +24,17 @@ query(SQL) ->
     {ok, {Count :: integer(), Res :: proplists:proplist()}} | %insert ... returning ...
     {ok, []} | %selected data is empty
     {ok, Res :: proplists:proplist()} | %select
-    {ok, {Count :: integer(), []}} |  %update
-    {error, term()}.  %invalid SQL
+    {ok, {Count :: integer(), []}} | %update
+    {error, term()}. %invalid SQL
 query(SQL, Params) ->
     Res = task_mng_db_worker:equery(SQL, Params),
     Log = "[DB] Result of a database query: ~p",
     task_mng_logger:info(Log, Res),
     transform_result(Res).
+
+%% =====================================================================================================================
+%% internal
+%% =====================================================================================================================
 
 transform_result(Res) ->
     case Res of

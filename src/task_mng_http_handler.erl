@@ -46,7 +46,7 @@ terminate(_Reason, _Req, _State) ->
     ok.
 
 dispatch(<<"POST">> = Method, Path, _Headers, Body) ->
-    DecodeBody = task_mng_coder:decode(Body),
+    DecodeBody = task_mng_coder:decode(Body, {object_format, map}),
     Log = "[HTTP] Incoming request~nMethod:~p~nPath:~p~nBody:~p~n",
     Arg = [Method, Path, DecodeBody],
     task_mng_logger:info(Log, Arg),
@@ -79,18 +79,20 @@ dispatch(<<"GET">> = Method, Path, _Headers, Body) ->
     task_mng_logger:error(ErrLog, ErrArg),
     {405, [{<<"Content-Type">>, <<"text/text">>}], <<"POST required">>}.
 
+%% =====================================================================================================================
 %% internal
-dispatch(Path, _Args) ->
+%% =====================================================================================================================
+
+dispatch(Path, Args) ->
     case Path of
         <<"/task_mng/registration">> ->
-            %% some API
-            ok;
+            task_mng_user_api:register(Args);
         <<"/task_mng/login">> ->
-            %% some API
-            ok;
+            task_mng_user_api:login(Args);
         <<"/task_mng/logout">> ->
-            %% some API
-            ok;
+            task_mng_user_api:logout(Args);
+        <<"/task_mng/delete">> ->
+            task_mng_user_api:delete(Args);
         _ ->
             {error, 404, <<"not_valid_path">>}
     end.
@@ -99,11 +101,6 @@ encode_result(ok, _Path) ->
     [
         {<<"status">>, <<"ok">>}
     ];
-%%encode_result({ok, Result}, _) -> %% TODO uncomment after to do dispatch()
-%%    [
-%%        {<<"status">>, <<"ok">>},
-%%        {<<"response">>, Result}
-%%    ];
 encode_result({error, Code, Msg}, _) ->
     [
         {<<"status">>,      <<"error">>},
