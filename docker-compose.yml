@@ -1,0 +1,56 @@
+services:
+
+  task_mng:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task_mng
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_NAME: task_mng
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_PORT: 5432
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: task_mng
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./priv/db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d task_mng"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: test_admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: test_admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

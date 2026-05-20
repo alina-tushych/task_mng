@@ -30,6 +30,57 @@ $ rebar3 release
 $ _build/default/rel/task_mng/bin/task_mng console
 ```
 --------
+### Run with Docker
+
+Build and start all services:
+
+```bash
+docker compose up --build
+```
+
+Application API:
+
+```text
+http://localhost:8080
+```
+
+PostgreSQL Admin (pgAdmin):
+
+```text
+http://localhost:5050
+```
+
+pgAdmin credentials:
+
+```text
+Email: test_admin@example.com
+Password: test_admin
+```
+
+Database connection settings:
+
+```text
+Host: postgres
+Port: 5432
+Database: task_mng
+Username: postgres
+Password: postgres
+```
+
+#### Stop services
+
+Stop containers:
+
+```bash
+docker compose down
+```
+
+Reset database and remove volumes:
+
+```bash
+docker compose down -v
+```
+--------
 ### Examples:
 
 #### API

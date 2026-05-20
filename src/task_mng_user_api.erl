@@ -13,12 +13,17 @@ register(Args) ->
     Password = maps:get(<<"password">>, Args),
     Role = maps:get(<<"role">>, Args),
     SQL = "INSERT INTO public.users (login, password, role, work_status, deleted) "
-        "VALUES ($1, $2, $3, $4, $5);",
+        "VALUES ($1, $2, $3, $4, $5) "
+        "ON CONFLICT(login) "
+        "DO NOTHING "
+        "RETURNING user_id;",
     case task_mng_db:query(SQL, [Login, Password, Role, <<"noactive">>, <<"no">>]) of
-        {ok, _Res} ->
+        {ok, {1, _Res}} ->
             ok;
+        {ok, {0, []}} ->
+            {error, 409, <<"user_already_exists">>};
         _ ->
-            {error, 127, <<"unknown_error">>}
+            {error, 500, <<"unknown_error">>}
     end.
 
 login(Args) ->
@@ -27,7 +32,7 @@ login(Args) ->
     SQL1 = "SELECT user_id FROM public.users WHERE login = $1 and password = $2 and deleted = $3;",
     case task_mng_db:query(SQL1, [Login, Password, <<"no">>]) of
         {ok, []} ->
-            {error, 127, <<"user_not_found_or_deleted">>};
+            {error, 404, <<"user_not_found_or_deleted">>};
         {ok, [Res]} ->
             UserId = proplists:get_value(<<"user_id">>, Res),
             SQL2 = "UPDATE public.users SET last_login = now() WHERE user_id = $1;",
@@ -35,10 +40,10 @@ login(Args) ->
                 {ok, _Res2} ->
                     add_user_activities(UserId);
                 _Error ->
-                    {error, 127, <<"unknown_error">>}
+                    {error, 500, <<"unknown_error">>}
             end;
         _ ->
-            {error, 127, <<"unknown_error">>}
+            {error, 500, <<"unknown_error">>}
     end.
 
 logout(Args) ->
@@ -46,11 +51,11 @@ logout(Args) ->
     SQL1 = "SELECT login_dt FROM public.activities WHERE user_id = $1;",
     case task_mng_db:query(SQL1, [UserId]) of
         {ok, []} ->
-            {error, 127, <<"user_not_logged_in">>};
+            {error, 401, <<"user_not_logged_in">>};
         {ok, _Res} ->
             make_logout(UserId);
         _ ->
-            {error, 127, <<"unknown_error">>}
+            {error, 500, <<"unknown_error">>}
     end.
 
 delete(Args) ->
@@ -58,17 +63,17 @@ delete(Args) ->
     SQL1 = "SELECT * FROM public.users WHERE user_id = $1;",
     case task_mng_db:query(SQL1, [UserId]) of
         {ok, []} ->
-            {error, 127, <<"user_not_found">>};
+            {error, 404, <<"user_not_found">>};
         {ok, _Res} ->
             Role = maps:get(<<"role">>, Args),
             case Role of
                 <<"admin">> ->
                     delete_user_by_admin(UserId);
                 _ ->
-                    {error, 127, <<"access_deny">>}
+                    {error, 403, <<"access_deny">>}
             end;
         _ ->
-            {error, 127, <<"unknown_error">>}
+            {error, 500, <<"unknown_error">>}
     end.
 
 %% =====================================================================================================================
@@ -81,7 +86,7 @@ add_user_activities(UserId) ->
         {ok, _Res} ->
             ok;
         _Error ->
-            {error, 127, <<"user_not_found">>}
+            {error, 404, <<"user_not_found">>}
     end.
 
 make_logout(UserId) ->
@@ -90,7 +95,7 @@ make_logout(UserId) ->
         {ok, _Res} ->
             ok;
         _ ->
-            {error, 127, <<"user_not_found">>}
+            {error, 404, <<"user_not_found">>}
     end.
 
 delete_user_by_admin(UserId) ->
@@ -101,8 +106,8 @@ delete_user_by_admin(UserId) ->
                 ok ->
                     ok;
                 _ ->
-                    {error, 127, <<"user_already_logout">>}
+                    {error, 409, <<"user_already_logout">>}
             end;
         _ ->
-            {error, 127, <<"unknown_error">>}
+            {error, 500, <<"unknown_error">>}
     end.
