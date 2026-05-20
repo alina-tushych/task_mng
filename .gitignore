@@ -1,6 +1,9 @@
 .erlang.mk/
 .idea/
+.vscode/
 .rebar/
+.rebar3/
+_build/
 deps/*
 doc/*
 ebin/*
@@ -9,3 +12,4 @@ log/*
 erl_crash.dump
 *.iml
 _rel/
+*.d

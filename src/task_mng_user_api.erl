@@ -85,7 +85,6 @@ add_user_activities(UserId) ->
     end.
 
 make_logout(UserId) ->
-    task_mng_logger:info("AAAAA ~p ~p ~p", [?FUNCTION_NAME, ?LINE, ok]),
     SQL2 = "UPDATE public.activities SET logout_dt = now() WHERE user_id = $1;",
     case task_mng_db:query(SQL2, [UserId]) of
         {ok, _Res} ->

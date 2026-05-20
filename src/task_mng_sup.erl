@@ -23,13 +23,6 @@
         type => Type
     }
 ).
--define(DB_ARGS, [
-    {hostname, "localhost"},
-    {database, "task_mng"},
-    {username, "alinatushych"},
-    {password, <<>>},
-    {port, 5432}
-]).
 
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
@@ -41,6 +34,7 @@ init(_Args) ->
         period      => 10
     },
     MainWorker = ?CHILD(task_mng_worker, worker, []),
-    DBWorker   = ?CHILD(task_mng_db_worker, worker, [?DB_ARGS]),
+    DbConfig   = application:get_env(task_mng, database, []),
+    DBWorker   = ?CHILD(task_mng_db_worker, worker, [DbConfig]),
     Workers = [MainWorker, DBWorker],
     {ok, {SupFlags, Workers}}.

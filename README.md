@@ -7,6 +7,7 @@ This project is under active development.
 
 The API structure, database schema, and internal components may change during development.
 Not recommended for production use yet.
+
 --------
 ![photo_5312094270309647352_y](https://user-images.githubusercontent.com/46717969/231493630-1093fc7d-5f01-4100-97fd-175842bc48ab.jpg)
 

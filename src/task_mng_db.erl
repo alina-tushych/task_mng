@@ -17,7 +17,7 @@
 query(SQL) ->
     Res = task_mng_db_worker:squery(SQL),
     Log = "[DB] Result of a database query: ~p",
-    task_mng_logger:info(Log, Res),
+    task_mng_logger:info(Log, [Res]),
     transform_result(Res).
 
 -spec query(SQL :: string(), Params :: list()) ->
@@ -29,7 +29,7 @@ query(SQL) ->
 query(SQL, Params) ->
     Res = task_mng_db_worker:equery(SQL, Params),
     Log = "[DB] Result of a database query: ~p",
-    task_mng_logger:info(Log, Res),
+    task_mng_logger:info(Log, [Res]),
     transform_result(Res).
 
 %% =====================================================================================================================

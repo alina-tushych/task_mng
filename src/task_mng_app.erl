@@ -6,9 +6,6 @@
 -export([start/2, stop/1, start_http/0]).
 
 -define(HTTP_PORT, 8080).
-%%-define(MaxConnections, 1000).
-%%-define(TcpSendTimeout, 5000).
-%%-define(TcpSendTimeoutClose, 5000).
 
 start(_Type, _StartArgs) ->
     Result = task_mng_sup:start_link(),
@@ -20,7 +17,7 @@ stop(_State) ->
     ok.
 
 start_http() ->
-    HttpPort = application:get_env(task_mng, http_port, ?HTTP_PORT), %% TODO maybe to add config file
+    HttpPort = application:get_env(task_mng, http_port, ?HTTP_PORT),
     Routes = [
         {'_', [
             {"/task_mng/[...]", task_mng_http_handler, []}
