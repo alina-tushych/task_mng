@@ -5,20 +5,12 @@
 %% API
 -export([start/2, stop/1, start_http/0]).
 
--define(HTTP_PORT, 81).
--define(MaxConnections, 1000).
--define(TcpSendTimeout, 5000).
--define(TcpSendTimeoutClose, 5000).
+-define(HTTP_PORT, 8080).
+%%-define(MaxConnections, 1000).
+%%-define(TcpSendTimeout, 5000).
+%%-define(TcpSendTimeoutClose, 5000).
 
 start(_Type, _StartArgs) ->
-%%    application:start(sasl),
-%%    application:start(crypto),
-%%    application:start(asn1),
-%%    application:start(public_key),
-%%    application:start(ssl),
-%%    application:start(cowlib),
-%%    application:start(ranch),
-%%    application:start(cowboy),
     Result = task_mng_sup:start_link(),
     start_http(),
 %%    task_mng_http_req_validator:init(), %% TODO need to add validation task 19
@@ -35,11 +27,7 @@ start_http() ->
         ]}
     ],
     Dispatch = cowboy_router:compile(Routes),
-    TransportOpts = #{
-        port => HttpPort,
-        max_connections => ?MaxConnections,
-        send_timeout => ?TcpSendTimeout,
-        send_timeout_close => ?TcpSendTimeoutClose    },
+    TransportOpts = [{port, HttpPort}],
     ProtocolOpts = #{
         compress => true,
         env => #{dispatch => Dispatch}

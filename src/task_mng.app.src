@@ -6,16 +6,13 @@
     {applications, [
         kernel,
         stdlib,
-        compiler,
-        jsone,
         sasl,
         crypto,
-        asn1,
         public_key,
         ssl,
-        cowlib,
-        ranch,
-        cowboy
+        jsone,
+        cowboy,
+        epgsql
     ]},
     {mod, {task_mng_app, []}},
     {env, []}

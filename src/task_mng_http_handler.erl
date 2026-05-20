@@ -1,52 +1,53 @@
 -module(task_mng_http_handler).
--behavior(cowboy_http_handler).
 
 %% API
 -export([]).
 
 %% API
 -export([
-    init/3,
-    handle/2,
+    init/2,
     terminate/3
 ]).
 
--define(HEADERS, [
-    {<<"Content-Type">>, <<"application/json">>}
-]).
+-define(HEADERS, #{
+    <<"Content-Type">> => <<"application/json">>
+}).
 
 -define(INTERNAL_ERR,
     <<"{\"status\":\"error\",\"error\":{\"code\":500,\"message\":\"Internal Server Error\"}}">>
 ).
 
-init(_Type, Req, []) ->
-    {ok, Req, undefined}.
-
-handle(Req1, State) ->
-    {Path, Req2} = cowboy_req:path(Req1),
-    {Method, Req3} = cowboy_req:method(Req2),
-    {ok, Body, Req4} = cowboy_req:read_body(Req3),
-    {InHeaders, Req5} = cowboy_req:headers(Req4),
-    {ok, Req6} =
+init(Req1, State) ->
+    Path = cowboy_req:path(Req1),
+    Method = cowboy_req:method(Req1),
+    {ok, Body, Req2} = cowboy_req:read_body(Req1),
+    InHeaders = cowboy_req:headers(Req2),
+    Log = "[HTTP] Incomming request:~nMethod:~p~nPath:~p~nBody:~p~n",
+    Arg = [Method, Path, Body],
+    task_mng_logger:info(Log, Arg),
+    {Code, Headers, Resp} =
         try
-            {Code, NewHeaders, Resp} = dispatch(Method, Path, InHeaders, Body),
-            cowboy_req:reply(Code, NewHeaders, Resp, Req5)
+            {_Code, _NewHeaders, _Resp} = dispatch(Method, Path, InHeaders, Body)
         catch
-            Type:Reason ->
-                Stacktrace = erlang:get_stacktrace(),
-                ErrLog = "[HTTP] Request ERROR:~nMethod:~p~nPath:~p~nBody:~p~n"
-                    "Exception Type:~p~nReason:~p Stacktrace:~p~n",
-                ErrArg = [Method, Path, Body, Type, Reason, Stacktrace],
-                task_mng_logger:error(ErrLog, ErrArg),
-                cowboy_req:reply(500, ?HEADERS, ?INTERNAL_ERR, Req4)
+            error:_Reason ->
+                {500, ?HEADERS, ?INTERNAL_ERR};
+            throw:_Reason ->
+                {500, ?HEADERS, ?INTERNAL_ERR};
+            exit:_Reason ->
+                {500, ?HEADERS, ?INTERNAL_ERR}
         end,
-    {ok, Req6, State}.
+    RespLog = "[HTTP] Request result:~nMethod:~p~nPath:~p~nBody:~p~n"
+        "Code:~p~nHeaders:~p Resp:~p~n",
+    RespArg = [Method, Path, Body, Code, Headers, Resp],
+    task_mng_logger:info(RespLog, RespArg),
+    Req3 = cowboy_req:reply(Code, Headers, Resp, Req2),
+    {ok, Req3, State}.
 
 terminate(_Reason, _Req, _State) ->
     ok.
 
 dispatch(<<"POST">> = Method, Path, _Headers, Body) ->
-    DecodeBody = task_mng_coder:decode(Body, {object_format, map}),
+    DecodeBody = task_mng_coder:decode(Body, [{object_format, map}]),
     Log = "[HTTP] Incoming request~nMethod:~p~nPath:~p~nBody:~p~n",
     Arg = [Method, Path, DecodeBody],
     task_mng_logger:info(Log, Arg),
@@ -54,6 +55,7 @@ dispatch(<<"POST">> = Method, Path, _Headers, Body) ->
         {ok, Args} ->
 %%            case task_mng_http_req_validator:validate(Path, Args) of %% TODO need to add validation task 19
 %%                {ok, Args} ->
+                    task_mng_logger:info("AAAAA ~p ~p ~p", [?FUNCTION_NAME, ?LINE, ok]),
                     Result = dispatch(Path, Args),
                     OkLog = "[HTTP] Response OK~nMethod:~p~nPath:~p~nBody:~p~nResult:~p",
                     OkArg = [Method, Path, DecodeBody, Result],
@@ -71,13 +73,13 @@ dispatch(<<"POST">> = Method, Path, _Headers, Body) ->
             ErrLog = "[HTTP] Request ERROR~nMethod:~p~nPath:~p~nBody:~p~n Reason:~p",
             ErrArg = [Method, Path, DecodeBody, Reason],
             task_mng_logger:error(ErrLog, ErrArg),
-            {415, [{<<"Content-Type">>, <<"text/text">>}], <<"Bed body">>}
+            {415, #{<<"Content-Type">> => <<"text/text">>}, <<"Bed body">>}
     end;
 dispatch(<<"GET">> = Method, Path, _Headers, Body) ->
     ErrLog = "[HTTP] Request ERROR~nMethod:~p~nPath:~p~nBody:~p~n Reason:POST required",
     ErrArg = [Method, Path, Body],
     task_mng_logger:error(ErrLog, ErrArg),
-    {405, [{<<"Content-Type">>, <<"text/text">>}], <<"POST required">>}.
+    {405, #{<<"Content-Type">> => <<"text/text">>}, <<"POST required">>}.
 
 %% =====================================================================================================================
 %% internal

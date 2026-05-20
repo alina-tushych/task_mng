@@ -9,13 +9,25 @@
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
--define(STOP_CHILD_TIMEOUT, 2000).
--define(CHILD(I, Type, Args), {I, {I, start_link, Args}, permanent, ?STOP_CHILD_TIMEOUT, Type, []}).
+-define(STOP_CHILD_TIMEOUT, 5000).
+-define(CHILD(I, Type, Args),
+    #{
+        id => I,
+        start => {
+            I,
+            start_link,
+            Args
+        },
+        restart => permanent,
+        shutdown => ?STOP_CHILD_TIMEOUT,
+        type => Type
+    }
+).
 -define(DB_ARGS, [
     {hostname, "localhost"},
     {database, "task_mng"},
-    {username, "postgres"},
-    {password, "postgres"},
+    {username, "alinatushych"},
+    {password, <<>>},
     {port, 5432}
 ]).
 
@@ -29,6 +41,6 @@ init(_Args) ->
         period      => 10
     },
     MainWorker = ?CHILD(task_mng_worker, worker, []),
-    DBWorker   = ?CHILD(task_mng_db_worker, worker, ?DB_ARGS),
+    DBWorker   = ?CHILD(task_mng_db_worker, worker, [?DB_ARGS]),
     Workers = [MainWorker, DBWorker],
     {ok, {SupFlags, Workers}}.

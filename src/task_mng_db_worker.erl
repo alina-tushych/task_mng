@@ -20,7 +20,7 @@
 -record(state, {conn}).
 
 start_link(Args) ->
-    gen_server:start_link(?MODULE, Args, []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, Args, []).
 
 squery(SQL) ->
     gen_server:call(?MODULE, {squery, SQL}).
@@ -32,17 +32,19 @@ init(Args) ->
     process_flag(trap_exit, true),
     Hostname = proplists:get_value(hostname, Args, "localhost"),
     Database = proplists:get_value(database, Args, "task_mng"),
-    Username = proplists:get_value(username, Args, "postgres"),
-    Password = proplists:get_value(password, Args, "postgres"),
+    Username = proplists:get_value(username, Args, "alinatushych"),
+    Password = proplists:get_value(password, Args, <<>>),
     Port     = proplists:get_value(port, Args, 5432),
-    Options = [{database, Database}, {port, Port}],
+    Options  = #{host => Hostname, username => Username, password => Password, database => Database, port => Port},
     {ok, Conn} = epgsql:connect(Hostname, Username, Password, Options),
     {ok, #state{conn = Conn}}.
 
 handle_call({squery, Sql}, _From, #state{conn = Conn} = State) ->
-    {reply, epgsql:squery(Conn, Sql), State};
+    Reply = epgsql:squery(Conn, Sql),
+    {reply, Reply, State};
 handle_call({equery, Stmt, Params}, _From, #state{conn = Conn} = State) ->
-    {reply, epgsql:equery(Conn, Stmt, Params), State};
+    Reply = epgsql:equery(Conn, Stmt, Params),
+    {reply, Reply, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
